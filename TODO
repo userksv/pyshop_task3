@@ -1,0 +1,48 @@
+
+# User register Done
+curl -X POST http://localhost:8000/api/register/ -d '{"email": "user@example.com", "password": "Testing321"}' -H "Content-Type: application/json"
+
+
+# Authentication (Obtaining Access and Refresh Token)
+# Endpoint: /api/login/
+# Method: POST
+# Body: {"email": "user@example.com", "password": "password"}
+# Response: {"access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVC", "refresh_token": "d952527b-caef-452c-8c93-1100214f82e5"}
+curl -X POST http://localhost:8000/api/login/ -d '{"email": "user@example.com", "password": "Testing321"}' -H "Content-Type: application/json"
+
+
+# Retrieving Personal Information DONE
+# Endpoint: /api/me/
+# Method: GET
+# Header: Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoxMjMsInVzZXJuYW1lIjoiZXhhbXBsZVVzZXIiLCJleHAiOjE3MTIxNDYxNDd9.zKobBlRuOiJSxCmi-iYap1bejfnvK6M3qtnkT0ssDKA
+# Response: {"id": 1, "username": "", "email": "user@example.com"}
+
+curl -X GET http://localhost:8000/api/me/ -H "Authorization: Token eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0b2tlbl90eXBlIjoiYWNjZXNzIiwidXNlcm5hbWUiOiJ1c2VyQGV4YW1wbGUuY29tIiwiZXhwIjoxNzEyODEwNDM0LCJ1c2VyX2lkIjoyfQ.PlytlmnpsKxtRAQnb9In3zfF7esn1IRTO0C2amN0pKI"
+
+
+# Updating Personal Information 
+# Endpoint: /api/me/
+# Method: PUT
+# Header: Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoxMjMsInVzZXJuYW1lIjoiZXhhbXBsZVVzZXIiLCJleHAiOjE3MTIxNDYxNDd9.zKobBlRuOiJSxCmi-iYap1bejfnvK6M3qtnkT0ssDKA
+# Body: {"username": "John Smith"}
+# Response: {"id": 1, "username": "John Smith", "email": "user@example.com"}
+
+curl -X PUT http://localhost:8000/api/me/ -d '{"username": "John Smith"}' -H "Content-Type: application/json" -H "Authorization: Token eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0b2tlbl90eXBlIjoiYWNjZXNzIiwidXNlcm5hbWUiOiJ1c2VyQGV4YW1wbGUuY29tIiwidXNlcl9pZCI6NX0.G_6fMwZYyayRM_8A2cMVit19fWO2KWipvPEOoOcHla0"
+
+
+# Logout (Invalidating Refresh Token) DONE
+# Endpoint: /api/logout/
+# Method: POST
+# Body: {"refresh_token": "eb0464c2-ed6e-4346-a709-042c33946154"}
+# Response: {"success": "User logged out."}
+
+curl -X POST http://localhost:8000/api/logout/ -d '{"refresh_token": "1bca2cc0-b823-4986-a16e-d1870fa88ead"}' -H "Content-Type: application/json"
+
+
+# Access Token Refresh  DONE
+# Endpoint: /api/refresh/
+# Method: POST
+# Body: {"refresh_token": "d952527b-caef-452c-8c93-1100214f82e5"}
+# Response: {"access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoxMjMsInVzZXJuYW1lIjoiZXhhbXBsZVVzZX"}
+
+curl -X POST http://localhost:8000/api/refresh/ -d '{"refresh_token": "1bca2cc0-b823-4986-a16e-d1870fa88ead"}' -H "Content-Type: application/json"
