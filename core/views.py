@@ -1,4 +1,4 @@
-import jwt, uuid, time
+import jwt, time
 
 from django.contrib.auth.models import User
 from django.conf import settings
@@ -7,19 +7,38 @@ from rest_framework.exceptions import ValidationError
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
-
-from .models import RefreshToken
+from rest_framework.authentication import BasicAuthentication
 
 # serilaizer
-from .serializers import UserRegisterSerializer
-from .serializers import UserLoginSerializer, RefreshTokenSerializer
+from .models import RefreshToken
+from .serializers import UserRegisterSerializer, UserLoginSerializer, RefreshTokenSerializer, UserSerializer
 
 # These values used for validating token expiration, meaning to compare with
 from constance import config
 REFRESH_TOKEN_EXPIRY_DAYS = config.REFRESH_TOKEN_EXPIRY_DAYS
 ACCESS_TOKEN_EXPIRY_SECONDS = config.ACCESS_TOKEN_EXPIRY_SECONDS
 
+from drf_yasg.utils import swagger_auto_schema
+from drf_yasg import openapi
+
+
 class RegisterAPIView(APIView):
+    # serializer_class = UserRegisterSerializer
+    @swagger_auto_schema(
+        operation_description='Creates a new user and sends back response with created users credentials(id, email)',
+        request_body=openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            properties={
+                'email': openapi.Schema(type=openapi.TYPE_STRING, default='example@mail.com'),
+                'password': openapi.Schema(type=openapi.TYPE_STRING, default='Testing321'),
+            },
+            required=['email', 'password']
+        ),
+        responses={
+            201: 'Created',
+            400: 'Bad Request',
+        }
+    )
     def post(self, request, *args, **kargs):
         registration_data = request.data
         registration_data.update({'password2':registration_data['password']})
@@ -37,21 +56,33 @@ class RegisterAPIView(APIView):
     
 
 class LoginAPIView(APIView):
+    serializer_class = UserLoginSerializer
+    @swagger_auto_schema(
+        operation_description='Logs in the user with provided credentials and return access and refresh tokens.',
+        request_body=openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            properties={
+                'email': openapi.Schema(type=openapi.TYPE_STRING, default='example@mail.com'),
+                'password': openapi.Schema(type=openapi.TYPE_STRING, default='Testing321'),
+            },
+            required=['email', 'password']
+        ),
+        responses={
+            200: 'Returns access and refresh tokens',
+            400: 'Bad Request',
+        }
+    )
     def post(self, request, *args, **kargs):
-        login_data = {}
-        login_data['username'] = request.data['email']
-        login_data['password'] = request.data['password']
         serializer = UserLoginSerializer(data=request.data)
         if serializer.is_valid():
-            if User.objects.filter(username=login_data['username']).exists():
-                user = User.objects.get(username=login_data['username'])
-                access_token = self._create_access_token(user)
-                refresh_token = self._create_refresh_token(user)
-                response = {
-                    'access_token': access_token,
-                    'refresh_token': str(refresh_token),
-                }
-                return Response(response, status=status.HTTP_200_OK)
+            user = serializer.authenticate_user()
+            access_token = self._create_access_token(user)
+            refresh_token = self._create_refresh_token(user)
+            response = {
+                'access_token': access_token,
+                'refresh_token': str(refresh_token),
+            }
+            return Response(response, status=status.HTTP_200_OK)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
     
     def _create_refresh_token(self, user):
@@ -71,6 +102,7 @@ class LoginAPIView(APIView):
 
 
 class LogoutAPIView(APIView):
+    serializer_class = UserLoginSerializer
     def post(self, request):
         serializer = RefreshTokenSerializer(data=request.data)
         if serializer.is_valid():
@@ -85,6 +117,8 @@ class LogoutAPIView(APIView):
     
 
 class MeAPIView(APIView):
+    serializer_class = UserSerializer
+    
     def get(self, request):
         response = {}
         access_token = request.META.get('HTTP_AUTHORIZATION').split(' ')[1]
@@ -122,6 +156,7 @@ class MeAPIView(APIView):
         
 
 class RefreshTokenAPIView(LoginAPIView):
+    serializer_class = RefreshTokenSerializer
     def __init__(self, **kwargs) -> None:
         super().__init__(**kwargs)
 
