@@ -2,6 +2,8 @@ import jwt, time
 
 from django.contrib.auth.models import User
 from django.conf import settings
+from django.core.exceptions import ObjectDoesNotExist
+
 
 from rest_framework.exceptions import ValidationError
 from rest_framework.views import APIView
@@ -11,7 +13,7 @@ from rest_framework.authentication import BasicAuthentication
 
 # serilaizer
 from .models import RefreshToken
-from .serializers import UserRegisterSerializer, UserLoginSerializer, RefreshTokenSerializer, UserSerializer
+from .serializers import UserRegisterSerializer, UserLoginSerializer, RefreshTokenSerializer, UserSerializer, UserLogoutSerializer
 
 # These values used for validating token expiration, meaning to compare with
 from constance import config
@@ -102,19 +104,37 @@ class LoginAPIView(APIView):
 
 
 class LogoutAPIView(APIView):
-    serializer_class = UserLoginSerializer
+    serializer_class = UserLogoutSerializer
+    @swagger_auto_schema(
+        operation_description='Logs the user out and destroys refresh token',
+        request_body=openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            properties={
+                'refresh_token': openapi.Schema(type=openapi.TYPE_STRING, default=''),
+            },
+            required=['refresh_token', 'refresh_token']
+        ),
+        responses={
+            200: 'User logged out',
+            400: 'Bad Request',
+        }
+    )
     def post(self, request):
-        serializer = RefreshTokenSerializer(data=request.data)
+        serializer = UserLogoutSerializer(data=request.data)
         if serializer.is_valid():
             refresh_token = serializer.validated_data['refresh_token']
             try:
-                RefreshToken.objects.filter(uuid_token=refresh_token).delete()
-                return Response({'Success': 'User logout!'}, status=status.HTTP_200_OK)
-            except:
-                return Response({'Error': 'DB deletion error'}, status=status.HTTP_400_BAD_REQUEST)
+                queryset = RefreshToken.objects.filter(uuid_token=refresh_token)
+                if queryset.exists():
+                    queryset.delete()
+                    return Response({'Success': 'User logged out!'}, status=status.HTTP_200_OK)
+                else:
+                    return Response({'Error': 'user not found'}, status=status.HTTP_404_NOT_FOUND)
+            except ObjectDoesNotExist:
+                return Response({'Error': 'Object does not exist'}, status=status.HTTP_404_NOT_FOUND)    
         else:
-            return Response({'error': 'Some kind of error!'}, status=status.HTTP_400_BAD_REQUEST)
-    
+            return Response({'Error': 'Check your request'}, status=status.HTTP_400_BAD_REQUEST)
+
 
 class MeAPIView(APIView):
     serializer_class = UserSerializer
@@ -134,9 +154,6 @@ class MeAPIView(APIView):
             response = {'response':'Token expired!'}
             return Response(response, status=status.HTTP_400_BAD_REQUEST)
 
-        # except:
-        #     response = {'response':'user not found'}
-    
     def put(self,request):
         response = {}
         access_token = request.META.get('HTTP_AUTHORIZATION').split(' ')[1]

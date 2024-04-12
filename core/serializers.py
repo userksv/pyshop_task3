@@ -1,3 +1,5 @@
+import uuid
+
 from rest_framework import serializers
 
 from rest_framework.exceptions import ValidationError
@@ -5,6 +7,8 @@ from rest_framework.authtoken.models import Token
 
 from django.contrib.auth.models import User
 from django.contrib.auth import authenticate
+
+from core.models import RefreshToken
 
 class UserSerializer(serializers.ModelSerializer):
     id = serializers.PrimaryKeyRelatedField(read_only=True)
@@ -16,8 +20,12 @@ class UserSerializer(serializers.ModelSerializer):
         fields = ["id", "email", "username"]
 
 
-class RefreshTokenSerializer(serializers.Serializer):
+class RefreshTokenSerializer(serializers.ModelSerializer):
     refresh_token = serializers.UUIDField()
+    class Meta:
+        model = RefreshToken
+        fields = ['refresh_token']
+
 
 class UserLoginSerializer(serializers.ModelSerializer):
     id = serializers.PrimaryKeyRelatedField(read_only=True)
@@ -37,6 +45,14 @@ class UserLoginSerializer(serializers.ModelSerializer):
         else:
             raise serializers.ValidationError("Unable to log in with provided credentials.")
 
+
+class UserLogoutSerializer(serializers.ModelSerializer):
+    refresh_token = serializers.UUIDField()
+
+    class Meta:
+        model = RefreshToken
+        fields = ['refresh_token']
+        
 
 class UserRegisterSerializer(serializers.ModelSerializer):
     id = serializers.PrimaryKeyRelatedField(read_only=True)
