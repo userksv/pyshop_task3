@@ -17,7 +17,8 @@ curl -X POST http://localhost:8000/api/login/ -d '{"email": "user@example.com", 
 # Header: Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoxMjMsInVzZXJuYW1lIjoiZXhhbXBsZVVzZXIiLCJleHAiOjE3MTIxNDYxNDd9.zKobBlRuOiJSxCmi-iYap1bejfnvK6M3qtnkT0ssDKA
 # Response: {"id": 1, "username": "", "email": "user@example.com"}
 
-curl -X GET http://localhost:8000/api/me/ -H "Authorization: Token eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0b2tlbl90eXBlIjoiYWNjZXNzIiwidXNlcm5hbWUiOiJ1c2VyQGV4YW1wbGUuY29tIiwiZXhwIjoxNzEyODEwNDM0LCJ1c2VyX2lkIjoyfQ.PlytlmnpsKxtRAQnb9In3zfF7esn1IRTO0C2amN0pKI"
+curl -X GET http://localhost:8000/api/me/ \
+-H "Authorization: Token eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0b2tlbl90eXBlIjoiYWNjZXNzIiwidXNlcm5hbWUiOiJ1c2VyQGV4YW1wbGUuY29tIiwiZXhwIjoxNzEyODEwNDM0LCJ1c2VyX2lkIjoyfQ.PlytlmnpsKxtRAQnb9In3zfF7esn1IRTO0C2amN0pKI"
 
 
 # Updating Personal Information DONE

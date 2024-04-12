@@ -36,10 +36,7 @@ class RegisterAPIView(APIView):
             },
             required=['email', 'password']
         ),
-        responses={
-            201: 'Created',
-            400: 'Bad Request',
-        }
+        responses={201: 'Created', 400: 'Bad Request'}
     )
     def post(self, request, *args, **kargs):
         registration_data = request.data
@@ -69,10 +66,7 @@ class LoginAPIView(APIView):
             },
             required=['email', 'password']
         ),
-        responses={
-            200: 'Returns access and refresh tokens',
-            400: 'Bad Request',
-        }
+        responses={200: 'Returns access and refresh tokens', 400: 'Bad Request'}
     )
     def post(self, request, *args, **kargs):
         serializer = UserLoginSerializer(data=request.data)
@@ -96,7 +90,7 @@ class LoginAPIView(APIView):
         payload = {
             "token_type": "access",
             "username": user.username,
-            "exp": int(time.time() + 30), # lifespan 30 seconds CHANGE
+            "exp": int(time.time() + 3000), # lifespan 30 seconds CHANGE
             "user_id": user.id
             }
         access_token = jwt.encode(payload, key, algorithm="HS256")
@@ -109,15 +103,10 @@ class LogoutAPIView(APIView):
         operation_description='Logs the user out and destroys refresh token',
         request_body=openapi.Schema(
             type=openapi.TYPE_OBJECT,
-            properties={
-                'refresh_token': openapi.Schema(type=openapi.TYPE_STRING, default=''),
-            },
+            properties={'refresh_token': openapi.Schema(type=openapi.TYPE_STRING, default='')},
             required=['refresh_token', 'refresh_token']
         ),
-        responses={
-            200: 'User logged out',
-            400: 'Bad Request',
-        }
+        responses={200: 'User logged out', 400: 'Bad Request'}
     )
     def post(self, request):
         serializer = UserLogoutSerializer(data=request.data)
@@ -139,9 +128,14 @@ class LogoutAPIView(APIView):
 class MeAPIView(APIView):
     serializer_class = UserSerializer
     
+    @swagger_auto_schema(
+        operation_description='Returns user id, empty username and email. First obtain access token by Loggin in, then authorize with token',
+        responses={200: 'User information', 400: 'Bad Request'},
+        security=[{'Bearer' : []}],
+    )
     def get(self, request):
         response = {}
-        access_token = request.META.get('HTTP_AUTHORIZATION').split(' ')[1]
+        access_token = request.headers.get('Authorization').split(' ')[-1]
         try:
             decoded = jwt.decode(access_token, settings.SECRET_KEY, algorithms=["HS256"])
             user_id = decoded['user_id']
@@ -154,9 +148,20 @@ class MeAPIView(APIView):
             response = {'response':'Token expired!'}
             return Response(response, status=status.HTTP_400_BAD_REQUEST)
 
+    @swagger_auto_schema(
+        operation_description='Returns updated user info. First obtain access token by Loggin in, then authorize with access token',
+        responses={200: 'User information', 400: 'Bad Request'},
+        request_body=openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            properties={
+                'username': openapi.Schema(type=openapi.TYPE_STRING, default='Mike Tyson'),
+            },
+            required=['username', 'username']
+        ),
+    )
     def put(self,request):
         response = {}
-        access_token = request.META.get('HTTP_AUTHORIZATION').split(' ')[1]
+        access_token = request.headers.get('Authorization').split(' ')[-1]
         data = request.data
         try:
             decoded = jwt.decode(access_token, settings.SECRET_KEY, algorithms=["HS256"])
@@ -184,7 +189,6 @@ class RefreshTokenAPIView(LoginAPIView):
             try:
                 token_from_db = RefreshToken.objects.get(uuid_token=str(refresh_token))
                 if token_from_db.is_expired():
-                    # print(token_from_db, 'Token EXPIRED')
                     token_from_db = self._update_refresh_token(token_from_db.user)
 
                 new_access_token = self._create_access_token(token_from_db.user) # using method from loginview class

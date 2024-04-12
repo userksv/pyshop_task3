@@ -129,3 +129,14 @@ CONSTANCE_CONFIG = {
     'REFRESH_TOKEN_EXPIRY_DAYS': (30, 'Token expiry in days'),
     'ACCESS_TOKEN_EXPIRY_SECONDS': (30, 'Token expiry in secs'),
 }
+
+SWAGGER_SETTINGS = {
+    'SECURITY_DEFINITIONS': {
+        'Bearer': {
+            'type': 'apiKey',
+            'name': 'Authorization',
+            'in': 'header',
+            'scheme': 'bearer' 
+        }
+    }
+}
