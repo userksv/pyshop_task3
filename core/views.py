@@ -57,7 +57,7 @@ class RegisterAPIView(APIView):
 class LoginAPIView(APIView):
     serializer_class = UserLoginSerializer
     @swagger_auto_schema(
-        operation_description='Logs in the user with provided credentials and return access and refresh tokens.',
+        operation_description='Logs in the user with provided credentials and return access and refresh tokens.(access_token life set to 120 secs for test purpose)',
         request_body=openapi.Schema(
             type=openapi.TYPE_OBJECT,
             properties={
@@ -90,7 +90,8 @@ class LoginAPIView(APIView):
         payload = {
             "token_type": "access",
             "username": user.username,
-            "exp": int(time.time() + 3000), # lifespan 30 seconds CHANGE
+            # "exp": int(time.time() + ACCESS_TOKEN_EXPIRY_SECONDS), # lifespan 30 seconds default
+            "exp": int(time.time() + 120), # for testing
             "user_id": user.id
             }
         access_token = jwt.encode(payload, key, algorithm="HS256")
@@ -129,7 +130,7 @@ class MeAPIView(APIView):
     serializer_class = UserSerializer
     
     @swagger_auto_schema(
-        operation_description='Returns user id, empty username and email. First obtain access token by Loggin in, then authorize with token',
+        operation_description='Returns user id, empty username and email. First obtain access token by Logging in, then authorize with token',
         responses={200: 'User information', 400: 'Bad Request'},
         security=[{'Bearer' : []}],
     )
@@ -149,8 +150,9 @@ class MeAPIView(APIView):
             return Response(response, status=status.HTTP_400_BAD_REQUEST)
 
     @swagger_auto_schema(
-        operation_description='Returns updated user info. First obtain access token by Loggin in, then authorize with access token',
+        operation_description='Returns updated user info. First obtain access token by Logging in, then authorize with access token',
         responses={200: 'User information', 400: 'Bad Request'},
+        security=[{'Bearer' : []}],
         request_body=openapi.Schema(
             type=openapi.TYPE_OBJECT,
             properties={
@@ -181,7 +183,18 @@ class RefreshTokenAPIView(LoginAPIView):
     serializer_class = RefreshTokenSerializer
     def __init__(self, **kwargs) -> None:
         super().__init__(**kwargs)
-
+    @swagger_auto_schema(
+        operation_description='Updates refresh and access tokens, refresh token updates only if it expires. \
+                                First obtain refresh token by Logging in, then pass it to request body.',
+        responses={200: 'Refreshed access token', 400: 'Bad Request'},
+        request_body=openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            properties={
+                'refresh_token': openapi.Schema(type=openapi.TYPE_STRING, default=''),
+            },
+            required=['refresh_token', 'refresh_token']
+        )
+    )
     def post(self, request):
         serializer = RefreshTokenSerializer(data=request.data)
         if serializer.is_valid():

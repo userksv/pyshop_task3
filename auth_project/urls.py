@@ -8,11 +8,12 @@ from django.urls import path, include
 
 schema_view = get_schema_view(
    openapi.Info(
-      title="Snippets API",
+      title="RestFul API Test Task3",
       default_version='v1',
-      description="Test description",
+      description="This is authentication implementation using PyJwt library.\
+                    This projects follows requirements from pyshop opened position.",
       terms_of_service="https://www.google.com/policies/terms/",
-      contact=openapi.Contact(email="contact@snippets.local"),
+      contact=openapi.Contact(email="serkimdev@gmail.com"),
       license=openapi.License(name="BSD License"),
    ),
    public=True,
