@@ -27,7 +27,8 @@ from drf_yasg import openapi
 class RegisterAPIView(APIView):
     # serializer_class = UserRegisterSerializer
     @swagger_auto_schema(
-        operation_description='Creates a new user and sends back response with created users credentials(id, email)',
+        operation_description='''Creates a new user and sends back response with created users credentials(id, email)
+                            username field is required in django, thus I am using email.value for username field.''',
         request_body=openapi.Schema(
             type=openapi.TYPE_OBJECT,
             properties={
@@ -42,6 +43,7 @@ class RegisterAPIView(APIView):
         registration_data = request.data
         registration_data.update({'password2':registration_data['password']})
         registration_data.update({'username':registration_data['email']})
+        registration_data.update({'email':registration_data['email']})
         serializer = UserRegisterSerializer(data=registration_data)
         if serializer.is_valid():
             serializer.save()
@@ -136,21 +138,25 @@ class MeAPIView(APIView):
     )
     def get(self, request):
         response = {}
-        access_token = request.headers.get('Authorization').split(' ')[-1]
-        try:
-            decoded = jwt.decode(access_token, settings.SECRET_KEY, algorithms=["HS256"])
-            user_id = decoded['user_id']
-            user = User.objects.get(id=int(user_id))
-            response['id'] = user.id
-            response['username'] = ''
-            response['email'] = user.username
-            return Response(response, status=status.HTTP_200_OK)
-        except jwt.ExpiredSignatureError:
-            response = {'response':'Token expired!'}
-            return Response(response, status=status.HTTP_400_BAD_REQUEST)
+        if not request.headers.get('Authorization'):
+            return Response(status=status.HTTP_400_BAD_REQUEST)
+        else:
+            access_token = request.headers.get('Authorization').split(' ')[-1]
+            try:
+                decoded = jwt.decode(access_token, settings.SECRET_KEY, algorithms=["HS256"])
+                user_id = decoded['user_id']
+                user = User.objects.get(id=int(user_id))
+                response['id'] = user.id
+                response['username'] = user.first_name # 
+                response['email'] = user.email
+                return Response(response, status=status.HTTP_200_OK)
+            except jwt.ExpiredSignatureError:
+                response = {'response':'Token expired!'}
+                return Response(response, status=status.HTTP_400_BAD_REQUEST)
 
     @swagger_auto_schema(
-        operation_description='Returns updated user info. First obtain access token by Logging in, then authorize with access token',
+        operation_description='''Returns updated user info. First obtain access token by Logging in, then authorize with access token
+                                actual username field is not changing, instead I am using first_name field''',
         responses={200: 'User information', 400: 'Bad Request'},
         security=[{'Bearer' : []}],
         request_body=openapi.Schema(
@@ -163,21 +169,28 @@ class MeAPIView(APIView):
     )
     def put(self,request):
         response = {}
-        access_token = request.headers.get('Authorization').split(' ')[-1]
-        data = request.data
-        try:
-            decoded = jwt.decode(access_token, settings.SECRET_KEY, algorithms=["HS256"])
-            user_id = decoded['user_id']
-            User.objects.filter(id=user_id).update(**data)
-            user = User.objects.get(id=user_id)
-            response['id'] = user.id
-            response['username'] = user.username
-            response['email'] = user.email
-            return Response(response, status=status.HTTP_200_OK)
-        except:
-            response = {'response':'Token expired!'}
-            return Response(response, status=status.HTTP_400_BAD_REQUEST)
-        
+        if not request.headers.get('Authorization'):
+            return Response(status=status.HTTP_400_BAD_REQUEST)
+        else:
+            access_token = request.headers.get('Authorization').split(' ')[-1]
+            data = request.data
+            poped = data.pop('username')
+            print(poped)
+            data['first_name'] = poped
+            
+            try:
+                decoded = jwt.decode(access_token, settings.SECRET_KEY, algorithms=["HS256"])
+                user_id = decoded['user_id']
+                User.objects.filter(id=user_id).update(**data)
+                user = User.objects.get(id=user_id)
+                response['id'] = user.id
+                response['username'] = user.first_name
+                response['email'] = user.email
+                return Response(response, status=status.HTTP_200_OK)
+            except:
+                response = {'response':'Token expired!'}
+                return Response(response, status=status.HTTP_400_BAD_REQUEST)
+            
 
 class RefreshTokenAPIView(LoginAPIView):
     serializer_class = RefreshTokenSerializer
