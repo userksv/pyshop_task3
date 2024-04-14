@@ -92,8 +92,8 @@ class LoginAPIView(APIView):
         payload = {
             "token_type": "access",
             "username": user.username,
-            # "exp": int(time.time() + ACCESS_TOKEN_EXPIRY_SECONDS), # lifespan 30 seconds default
-            "exp": int(time.time() + 120), # for testing
+            "exp": int(time.time() + ACCESS_TOKEN_EXPIRY_SECONDS), # lifespan 30 seconds default
+            # "exp": int(time.time() + 120), # for testing
             "user_id": user.id
             }
         access_token = jwt.encode(payload, key, algorithm="HS256")
@@ -116,14 +116,11 @@ class LogoutAPIView(APIView):
         if serializer.is_valid():
             refresh_token = serializer.validated_data['refresh_token']
             try:
-                queryset = RefreshToken.objects.filter(uuid_token=refresh_token)
-                if queryset.exists():
-                    queryset.delete()
-                    return Response({'Success': 'User logged out!'}, status=status.HTTP_200_OK)
-                else:
-                    return Response({'Error': 'user not found'}, status=status.HTTP_404_NOT_FOUND)
+                queryset = RefreshToken.objects.get(uuid_token=refresh_token)
+                queryset.delete()
+                return Response({'Success': 'User logged out!'}, status=status.HTTP_200_OK)
             except ObjectDoesNotExist:
-                return Response({'Error': 'Object does not exist'}, status=status.HTTP_404_NOT_FOUND)    
+                return Response({'Error': 'User not found'}, status=status.HTTP_404_NOT_FOUND)    
         else:
             return Response({'Error': 'Check your request'}, status=status.HTTP_400_BAD_REQUEST)
 
@@ -139,7 +136,7 @@ class MeAPIView(APIView):
     def get(self, request):
         response = {}
         if not request.headers.get('Authorization'):
-            return Response(status=status.HTTP_400_BAD_REQUEST)
+            return Response({'Error': 'No access token'}, status=status.HTTP_401_UNAUTHORIZED)
         else:
             access_token = request.headers.get('Authorization').split(' ')[-1]
             try:
@@ -151,7 +148,7 @@ class MeAPIView(APIView):
                 response['email'] = user.email
                 return Response(response, status=status.HTTP_200_OK)
             except jwt.ExpiredSignatureError:
-                response = {'response':'Token expired!'}
+                response = {'Error':'Token expired!'}
                 return Response(response, status=status.HTTP_400_BAD_REQUEST)
 
     @swagger_auto_schema(
@@ -175,7 +172,6 @@ class MeAPIView(APIView):
             access_token = request.headers.get('Authorization').split(' ')[-1]
             data = request.data
             poped = data.pop('username')
-            print(poped)
             data['first_name'] = poped
             
             try:
@@ -219,10 +215,10 @@ class RefreshTokenAPIView(LoginAPIView):
 
                 new_access_token = self._create_access_token(token_from_db.user) # using method from loginview class
                 return Response({'access_token': new_access_token}, status=status.HTTP_200_OK)
-            except:
-                return Response({'error': 'token not found'}, status=status.HTTP_400_BAD_REQUEST)
+            except ObjectDoesNotExist:
+                return Response({'Error': 'Token not found'}, status=status.HTTP_404_NOT_FOUND)
             
-        return Response({'error': 'Some kind of error!'}, status=status.HTTP_400_BAD_REQUEST)
+        return Response({'Error': 'Check your request'}, status=status.HTTP_400_BAD_REQUEST)
     
     def _update_refresh_token(self, user):
         # 1. Delete expired token
@@ -231,3 +227,4 @@ class RefreshTokenAPIView(LoginAPIView):
         refresh_token = RefreshToken.objects.create(user=user)
         
         return refresh_token
+    
